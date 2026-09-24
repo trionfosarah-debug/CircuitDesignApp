@@ -1,0 +1,1893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Circuit Design & Robustness Analysis Platform</title>
+    <link rel="stylesheet" href="/frontend/styles_unified.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Circuit Design</h1>
+            <p class="subtitle">Design & Robustness</p>
+            <div id="debugBanner" style="margin-top:8px;padding:8px;background:#fffbeb;border-radius:6px;color:#7c5b00;font-weight:600;display:none;">Debug: Frontend served</div>
+        </header>
+
+        <div class="main-grid">
+            <!-- LEFT COLUMN: UNIFIED INPUT PANEL -->
+            <div class="input-panel">
+                <section class="panel-section">
+                    <h2>Configuration</h2>
+                    <form id="mainForm">
+                        <!-- CIRCUIT SELECTION -->
+                        <div class="form-group">
+                            <label>Circuit Type:</label>
+                            <select id="circuitType" required>
+                                <option value="">Select a circuit...</option>
+                                <option value="RC_LOW_PASS">RC Low-Pass Filter</option>
+                                <option value="RC_HIGH_PASS">RC High-Pass Filter</option>
+                                <option value="RC_CHARGING">RC Charging/Discharging</option>
+                                <option value="NON_INVERTING_OPAMP">Non-Inverting Op-Amp</option>
+                                <option value="INVERTING_OPAMP">Inverting Op-Amp</option>
+                                <option value="ACTIVE_OPAMP_FILTER">Active Op-Amp Filter</option>
+                                <option value="LINEAR_REGULATOR_WITH_BRIDGE_RECTIFIER">Linear Regulator with Bridge Rectifier</option>
+                                <option value="ZENER_REGULATOR_WITH_BRIDGE_RECTIFIER">Zener Regulator with Bridge Rectifier</option>
+                            </select>
+                        </div>
+
+                        <!-- VOLTAGE CONFIGURATION -->
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Voltage Type:</label>
+                                <select id="voltageType" required>
+                                    <option value="" disabled selected>-- Select voltage type --</option>
+                                    <option value="DC">DC</option>
+                                    <option value="AC_PEAK">AC Peak (Vpk)</option>
+                                    <option value="AC_RMS">AC RMS</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="inputVoltage" id="inputVoltageLabel">Input Voltage (V):</label>
+                                <input type="number" id="inputVoltage" step="0.01" min="0" max="999" placeholder="Optional">
+                            </div>
+                            <div class="form-group">
+                                <label>Output Voltage (V):</label>
+                                <input type="number" id="outputVoltage" step="0.01" min="0" max="999" placeholder="Optional">
+                            </div>
+                        </div>
+
+                        <div id="chargingParams" style="display:none;">
+                            <div class="form-group">
+                                <label>Time Duration (seconds):</label>
+                                <input type="number" id="timeDuration" step="0.001" min="0.001" value="1">
+                            </div>
+                        </div>
+
+                        <div id="rcComponentParams" style="display:none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Resistor (Ω):</label>
+                                    <input type="number" id="rcResistorOhms" min="1" step="1" placeholder="e.g. 10000">
+                                </div>
+                                <div class="form-group">
+                                    <label>Capacitor (F):</label>
+                                    <input type="number" id="rcCapacitorFarads" min="1e-12" step="1e-12" placeholder="e.g. 1e-8 (10nF)">
+                                </div>
+                            </div>
+                            <p style="margin:8px 0 0 0;font-size:12px;color:#64748b;">
+                                Optional for RC circuits: leave blank to auto-size from the target frequency, or enter exact component values to analyze a fixed circuit.
+                            </p>
+                        </div>
+
+                        <!-- Filter Parameters (RC Filters, Active Op-Amp Filter) -->
+                        <div id="filterParams" style="display:none;">
+                            <div class="form-group">
+                                <label>Cutoff Frequency (Hz):</label>
+                                <input type="number" id="cutoffFreq" min="1" step="1" placeholder="e.g. 1000">
+                            </div>
+                            <div id="activeLpfConfig" style="display:none;">
+                                <div class="form-group">
+                                    <label>Active LPF Configuration:</label>
+                                    <select id="activeLpfType" required>
+                                        <option value="noninverting" selected>Non-Inverting</option>
+                                        <option value="inverting">Inverting</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Removed Target Gain input per user request -->
+
+                        <div id="regulatorParams" style="display:none;">
+                            <div class="form-group">
+                                <label>Load Current (A):</label>
+                                <input type="number" id="loadCurrent" step="0.01" min="0.01" value="0.5">
+                            </div>
+                            <div class="form-group">
+                                <label>Dropout Voltage (V):</label>
+                                <input type="number" id="dropoutVoltage" step="0.01" min="0.1" max="5" value="0.2">
+                            </div>
+                            <div class="form-group">
+                                <label>Ripple Voltage (V):</label>
+                                <input type="number" id="rippleVoltage" step="0.01" min="0.01" max="10" value="0.5">
+                            </div>
+                        </div>
+
+                        <div id="zenerParams" style="display:none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Transformer Turns Ratio:</label>
+                                    <input type="number" id="transformerTurnsRatio" step="0.01" min="0.01" placeholder="e.g. 10 for 10:1">
+                                </div>
+                                <div class="form-group">
+                                    <label>Secondary RMS Voltage (V):</label>
+                                    <input type="number" id="secondaryVoltageRms" step="0.01" min="0.01" placeholder="Optional override">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Line Frequency (Hz):</label>
+                                    <input type="number" id="lineFrequencyHz" step="0.1" min="0.1" value="60">
+                                </div>
+                                <div class="form-group">
+                                    <label>Diode Forward Drop (V):</label>
+                                    <input type="number" id="diodeForwardVoltage" step="0.01" min="0.01" value="0.7">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Load Resistance (Ω):</label>
+                                <input type="number" id="loadResistance" step="1" min="1" value="100">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Optional Series Resistor RS (Ω):</label>
+                                    <input type="number" id="zenerSeriesResistor" step="1" min="1" placeholder="Leave blank to auto-size">
+                                </div>
+                                <div class="form-group">
+                                    <label>Optional Filter Capacitor C (F):</label>
+                                    <input type="number" id="zenerFilterCapacitor" step="0.000001" min="0.000001" placeholder="Leave blank to auto-size">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Minimum Zener Current (mA):</label>
+                                <input type="number" id="minZenerCurrent" step="0.1" min="0.1" value="5">
+                            </div>
+                            <p style="margin:8px 0 0 0;font-size:12px;color:#64748b;">
+                                Leave `RS` and `C` blank to let the backend size them automatically, or enter exact values to force a fixed test circuit.
+                            </p>
+                        </div>
+
+                        <!-- TOLERANCES & SAMPLING -->
+                        <hr style="margin: 15px 0; border: none; border-top: 1px solid #e2e8f0;">
+                        <h3 style="font-size: 14px; margin: 12px 0 10px 0; color: #4a5568;">Tolerances & Sampling</h3>
+                        
+                        <div class="form-row">
+                            <div class="form-group" id="resistorToleranceGroup">
+                                <label>Resistor Tolerance (%):</label>
+                                <input type="number" id="rTolerance" min="0" max="50" value="5" step="0.1">
+                            </div>
+                            <div class="form-group" id="capacitorToleranceGroup" style="display:none;">
+                                <label>Capacitor Tolerance (%):</label>
+                                <input type="number" id="cTolerance" min="0" max="50" value="5" step="0.1">
+                            </div>
+                        </div>
+
+                            <div id="activeOpAmpToleranceNote" style="display:none; margin: 6px 0 0 0; font-size: 12px; color: #64748b;">
+                                Active op-amp filters use the per-resistor tolerances below plus capacitor tolerance for analysis.
+                            </div>
+
+                        <div id="opAmpParams" style="display:none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Resistor 1 (Ω):</label>
+                                    <input type="number" id="resistorOhms1" min="1" step="1" placeholder="e.g. 10000">
+                                </div>
+                                <div class="form-group">
+                                    <label>Resistor 2 (Ω):</label>
+                                    <input type="number" id="resistorOhms2" min="1" step="1" placeholder="e.g. 10000">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Resistor 1 Tolerance (%):</label>
+                                    <input type="number" id="resistorTolerance1" min="0" max="50" value="5" step="0.1">
+                                </div>
+                                <div class="form-group">
+                                    <label>Resistor 2 Tolerance (%):</label>
+                                    <input type="number" id="resistorTolerance2" min="0" max="50" value="5" step="0.1">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Target Gain (Optional):</label>
+                                    <input type="number" id="gainSetting" min="0.1" step="0.1" placeholder="e.g. 10 (defaults to 10)">
+                                </div>
+                            </div>
+                            <div id="capacitorField" style="display:none;">
+                                <div class="form-group">
+                                    <label>Capacitor (F):</label>
+                                    <input type="number" id="capacitorFarads" min="1e-12" step="1e-12" placeholder="e.g. 1e-8 (10nF)">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Input Line Fluctuation (%):</label>
+                                <input type="number" id="lineTolerance" min="0" max="50" value="2" step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label>Monte Carlo Samples:</label>
+                                <input type="number" id="numSamples" min="100" max="100000" value="1000" step="100">
+                            </div>
+                        </div>
+
+                        <!-- ACTION BUTTONS -->
+                        <div class="button-group">
+                            <button type="button" id="designBtn" class="btn btn-primary">Generate</button>
+                            <button type="button" id="clearBtn" class="btn btn-secondary" style="background-color: #ef4444;">🔄 Clear All</button>
+                        </div>
+                        <div class="button-group" id="analysisButtons" style="display:none;">
+                            <button type="button" id="optimizeBtn" class="btn btn-accent">✨ Optimize Components</button>
+                            <button type="button" id="montecarloBtn" class="btn btn-primary">Run MC</button>
+                        </div>
+                        <div class="button-group" id="exportButtons" style="display:none;">
+                            <button type="button" id="worstcaseBtn" class="btn btn-primary">Worst-Case</button>
+                            <button type="button" id="matlabBtn" class="btn btn-secondary">💻 MATLAB Code</button>
+                            <button type="button" id="exportNominalBtn" class="btn btn-secondary">💾 Export Nominal CSV</button>
+                            <button type="button" id="exportMCBtn" class="btn btn-secondary">💾 Export MC CSV</button>
+                            <button type="button" id="exportWcBtn" class="btn btn-secondary">💾 Export WC CSV</button>
+                            <button type="button" id="explainBtn" class="btn btn-secondary">❓ Explain</button>
+                        </div>
+                    </form>
+                </section>
+            </div>
+
+            <!-- RIGHT COLUMN: RESULTS PANEL -->
+            <div class="results-panel">
+                <!-- Error/Status Messages -->
+                <div id="statusArea"></div>
+
+                <!-- Deterministic Design Results -->
+                <section id="designSection" class="panel-section" style="display:none;">
+                    <h2>✓ Deterministic Design Results</h2>
+                    <div id="designResults" class="results-content"></div>
+                </section>
+
+                <!-- Optimized Design Results -->
+                <section id="optimizedSection" class="panel-section" style="display:none;">
+                    <h2>✨ Optimized Component Suggestions</h2>
+                    <div id="optimizedResults" class="results-content"></div>
+                </section>
+
+                <!-- Combined Results Table -->
+                <section id="resultsTableSection" class="panel-section" style="display:none;">
+                    <h2>📊 Complete Analysis Results</h2>
+                    <div id="nominalTable" class="results-content"></div>
+                    <div id="mcTable" class="results-content"></div>
+                    <div id="wcTable" class="results-content"></div>
+                </section>
+
+                <!-- MATLAB Code -->
+                <section id="matlabSection" class="panel-section" style="display:none;">
+                    <h2>💻 MATLAB Code</h2>
+                    <div class="code-container">
+                        <pre id="matlabCode"></pre>
+                        <button type="button" id="copyMatlabBtn" class="btn btn-sm btn-secondary">Copy Code</button>
+                    </div>
+                </section>
+
+                <!-- Explanation -->
+                <section id="explainSection" class="panel-section" style="display:none;">
+                    <h2>ℹ️ Concept Explanation</h2>
+                    <div id="explainResults" class="results-content"></div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set API_BASE to backend server (localhost:8000)
+        const API_BASE = '';
+        let currentDesignData = null;
+        let currentOptimizedData = null;
+        let currentMonteCarloData = null;
+        let currentWorstCaseData = null;
+
+        // Helper: safely read numeric input values (returns default if element missing or empty)
+        function getNumber(id, defaultVal = null) {
+            const el = document.getElementById(id);
+            if (!el) return defaultVal;
+            return el.value ? parseFloat(el.value) : defaultVal;
+        }
+
+        function getResolvedSecondaryVoltage(defaultVal = null) {
+            const secondary = getNumber('secondaryVoltageRms', null);
+            if (secondary !== null) return secondary;
+            const primary = getNumber('primaryVoltageRms', null);
+            const turns = getNumber('transformerTurnsRatio', null);
+            if (primary !== null && turns) return primary / turns;
+            return defaultVal;
+        }
+
+        function getZenerSeriesResistor(defaultVal = null) {
+            return getNumber('zenerSeriesResistor', defaultVal);
+        }
+
+        function getZenerFilterCapacitor(defaultVal = null) {
+            return getNumber('zenerFilterCapacitor', defaultVal);
+        }
+
+        function isRcCircuitType(circuitType) {
+            return ['RC_LOW_PASS', 'RC_HIGH_PASS', 'RC_CHARGING'].includes(circuitType);
+        }
+
+        function getRcResistor(defaultVal = null) {
+            return getNumber('rcResistorOhms', defaultVal);
+        }
+
+        function getRcCapacitor(defaultVal = null) {
+            return getNumber('rcCapacitorFarads', defaultVal);
+        }
+
+        function getSelectedOptimizedOption() {
+            if (!currentOptimizedData) return null;
+            if (Array.isArray(currentOptimizedData.options)
+                && typeof currentOptimizedData.selected_index === 'number'
+                && currentOptimizedData.options[currentOptimizedData.selected_index]) {
+                return currentOptimizedData.options[currentOptimizedData.selected_index];
+            }
+            if (!Array.isArray(currentOptimizedData.options)) {
+                return currentOptimizedData;
+            }
+            return null;
+        }
+
+        function applyNominalValuesToInputs(source) {
+            if (!source) return;
+            const circuitType = document.getElementById('circuitType').value;
+
+            if (isRcCircuitType(circuitType)) {
+                const rcResistor = document.getElementById('rcResistorOhms');
+                const rcCapacitor = document.getElementById('rcCapacitorFarads');
+                if (rcResistor && source.resistor_ohms !== undefined && source.resistor_ohms !== null) {
+                    rcResistor.value = source.resistor_ohms;
+                }
+                if (rcCapacitor && source.capacitor_farads !== undefined && source.capacitor_farads !== null) {
+                    rcCapacitor.value = source.capacitor_farads;
+                }
+            }
+
+            if (['NON_INVERTING_OPAMP', 'INVERTING_OPAMP', 'ACTIVE_OPAMP_FILTER'].includes(circuitType)) {
+                const r1 = document.getElementById('resistorOhms1');
+                const r2 = document.getElementById('resistorOhms2');
+                const c = document.getElementById('capacitorFarads');
+                if (r1 && source.resistor_ohms !== undefined && source.resistor_ohms !== null) r1.value = source.resistor_ohms;
+                if (r2 && source.resistor_ohms_2 !== undefined && source.resistor_ohms_2 !== null) r2.value = source.resistor_ohms_2;
+                if (c && source.capacitor_farads !== undefined && source.capacitor_farads !== null) c.value = source.capacitor_farads;
+            }
+
+            if (circuitType === 'ZENER_REGULATOR_WITH_BRIDGE_RECTIFIER') {
+                const series = document.getElementById('zenerSeriesResistor');
+                const cap = document.getElementById('zenerFilterCapacitor');
+                if (series && (source.series_resistor_value !== undefined || source.series_resistor_ohms !== undefined || source.resistor_ohms !== undefined)) {
+                    series.value = source.series_resistor_value ?? source.series_resistor_ohms ?? source.resistor_ohms;
+                }
+                if (cap && (source.filter_capacitor_farads !== undefined || source.capacitor_farads !== undefined)) {
+                    cap.value = source.filter_capacitor_farads ?? source.capacitor_farads;
+                }
+            }
+        }
+
+        function buildMatlabRequest() {
+            const circuitType = document.getElementById('circuitType').value;
+            const isOpAmp = ['NON_INVERTING_OPAMP', 'INVERTING_OPAMP', 'ACTIVE_OPAMP_FILTER'].includes(circuitType);
+            const isLinearRegulator = circuitType === 'LINEAR_REGULATOR_WITH_BRIDGE_RECTIFIER';
+            const isZenerRegulator = circuitType === 'ZENER_REGULATOR_WITH_BRIDGE_RECTIFIER';
+            const isRcCircuit = isRcCircuitType(circuitType);
+            const resistor1 = getNumber('resistorOhms1', currentDesignData?.resistor_ohms || null);
+            const resistor2 = getNumber('resistorOhms2', currentDesignData?.resistor_ohms_2 || null);
+            const seriesResistor = isLinearRegulator
+                ? getNumber('resistorOhms1', currentDesignData?.series_resistor_ohms || currentDesignData?.resistor_ohms || null)
+                : isZenerRegulator
+                    ? getZenerSeriesResistor(currentDesignData?.series_resistor_value || null)
+                    : isRcCircuit
+                        ? getRcResistor(currentDesignData?.resistor_ohms ?? null)
+                        : null;
+            const filterCapacitor = isLinearRegulator || isZenerRegulator
+                ? (isZenerRegulator
+                    ? getZenerFilterCapacitor(currentDesignData?.filter_capacitor_farads ?? currentDesignData?.capacitor_farads ?? 1e-6)
+                    : (currentDesignData?.filter_capacitor_farads ?? currentDesignData?.capacitor_farads ?? 1e-6))
+                : isRcCircuit
+                    ? getRcCapacitor(currentDesignData?.capacitor_farads ?? 1e-6)
+                    : (currentDesignData?.capacitor_farads ?? 1e-6);
+            const gainSetting = currentDesignData?.gain ?? getNumber('gainSetting', null);
+            const cutoffFrequency = currentDesignData?.cutoff_frequency ?? getNumber('cutoffFreq', null);
+
+            return {
+                circuit_type: circuitType,
+                resistor_ohms: isOpAmp ? (resistor1 ?? 10000) : ((seriesResistor ?? currentDesignData?.resistor_ohms) ?? 10000),
+                resistor_ohms_2: isOpAmp ? resistor2 : (currentDesignData?.resistor_ohms_2 ?? null),
+                capacitor_farads: filterCapacitor,
+                voltage_value: currentDesignData?.secondary_voltage_rms ?? currentDesignData?.input_voltage ?? currentDesignData?.voltage_value ?? getResolvedSecondaryVoltage(getNumber('inputVoltage', 5)),
+                output_voltage: getNumber('outputVoltage', currentDesignData?.output_voltage ?? currentDesignData?.zener_diode_voltage ?? null),
+                voltage_type: document.getElementById('voltageType').value || 'DC',
+                num_samples: parseInt(document.getElementById('numSamples').value, 10) || 1000,
+                r1_tolerance_percent: isOpAmp ? getNumber('resistorTolerance1', 5) : getNumber('rTolerance', 5),
+                r2_tolerance_percent: isOpAmp ? getNumber('resistorTolerance2', 5) : null,
+                capacitor_tolerance_percent: getNumber('cTolerance', 5),
+                line_fluctuation_percent: getNumber('lineTolerance', 2),
+                cutoff_frequency: cutoffFrequency,
+                gain_setting: gainSetting,
+                load_current: getNumber('loadCurrent', currentDesignData?.load_current ?? null),
+                load_resistance: getNumber('loadResistance', currentDesignData?.load_resistor_value ?? null),
+                dropout_voltage: getNumber('dropoutVoltage', currentDesignData?.dropout_voltage ?? null),
+                ripple_voltage: getNumber('rippleVoltage', currentDesignData?.ripple_voltage ?? null),
+                min_zener_current: getNumber('minZenerCurrent', currentDesignData?.zener_current ?? null),
+                primary_voltage_rms: currentDesignData?.primary_voltage_rms ?? getNumber('inputVoltage', null),
+                secondary_voltage_rms: getNumber('secondaryVoltageRms', currentDesignData?.secondary_voltage_rms ?? null),
+                transformer_turns_ratio: getNumber('transformerTurnsRatio', currentDesignData?.transformer_turns_ratio ?? null),
+                line_frequency_hz: getNumber('lineFrequencyHz', currentDesignData?.line_frequency_hz ?? 60),
+                diode_forward_voltage: getNumber('diodeForwardVoltage', currentDesignData?.diode_forward_voltage ?? 0.7)
+            };
+        }
+
+        function updateVoltageLabels(type) {
+            const inputLabel = document.getElementById('inputVoltageLabel');
+            const outputLabel = document.querySelector('label[for="outputVoltage"]') || Array.from(document.querySelectorAll('label')).find(label => label.textContent.includes('Output Voltage'));
+            if (!inputLabel || !outputLabel) return;
+
+            if (type === 'ZENER_REGULATOR_WITH_BRIDGE_RECTIFIER') {
+                inputLabel.textContent = 'Primary/Input AC Voltage (V):';
+                outputLabel.textContent = 'Target Zener Output (V):';
+            } else if (type === 'LINEAR_REGULATOR_WITH_BRIDGE_RECTIFIER') {
+                inputLabel.textContent = 'Input AC Voltage (V):';
+                outputLabel.textContent = 'Regulated Output Voltage (V):';
+            } else {
+                inputLabel.textContent = 'Input Voltage (V):';
+                outputLabel.textContent = 'Output Voltage (V):';
+            }
+        }
+
+        // Initialize button visibility
+        document.getElementById('designBtn').style.display = 'inline-block';
+        document.getElementById('analysisButtons').style.display = 'none';
+        document.getElementById('exportButtons').style.display = 'none';
+
+        // Ensure voltageType dropdown is visible and present; insert fallback if missing
+        window.addEventListener('load', () => {
+            const vt = document.getElementById('voltageType');
+            if (vt) {
+                vt.style.display = 'block';
+                vt.style.visibility = 'visible';
+                vt.style.background = 'white';
+                vt.style.color = 'var(--gray-dark)';
+                console.log('[UI] voltageType present');
+            } else {
+                console.error('[UI] voltageType missing — inserting fallback');
+                const form = document.getElementById('mainForm');
+                if (form) {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'form-group';
+                    wrapper.innerHTML = `
+                        <label>Voltage Type:</label>
+                        <select id="voltageType" required>
+                            <option value="DC">DC</option>
+                            <option value="AC_PEAK">AC Peak (Vpk)</option>
+                            <option value="AC_RMS">AC RMS</option>
+                        </select>
+                    `;
+                    // insert near the top of the form
+                    form.insertBefore(wrapper, form.firstChild);
+                }
+            }
+        });
+
+        // CLEAR BUTTON - Reset form and all results
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            // Clear all form fields
+            document.getElementById('mainForm').reset();
+            
+            // Clear all data
+            currentDesignData = null;
+            currentOptimizedData = null;
+            currentMonteCarloData = null;
+            currentWorstCaseData = null;
+            
+            // Hide all results sections
+            document.getElementById('designSection').style.display = 'none';
+            document.getElementById('optimizedSection').style.display = 'none';
+            document.getElementById('resultsTableSection').style.display = 'none';
+            document.getElementById('matlabSection').style.display = 'none';
+            document.getElementById('explainSection').style.display = 'none';
+            
+            // Hide analysis and export buttons
+            document.getElementById('analysisButtons').style.display = 'none';
+            document.getElementById('exportButtons').style.display = 'none';
+            
+            // Clear status area
+            document.getElementById('statusArea').innerHTML = '';
+            
+            // Reset conditional field visibility
+            const filterParams = document.getElementById('filterParams');
+            if (filterParams) filterParams.style.display = 'none';
+            document.getElementById('chargingParams').style.display = 'none';
+            // Only reset gainParams if it exists (we removed it)
+            if (document.getElementById('gainParams')) document.getElementById('gainParams').style.display = 'none';
+            
+            // Re-enable design button
+            document.getElementById('designBtn').style.display = 'none';
+            
+            showSuccess('✓ All fields cleared. Ready for new values!');
+        });
+
+        // Update conditional fields based on circuit type
+        document.getElementById('circuitType').addEventListener('change', (e) => {
+            const type = e.target.value;
+            const isZenerCircuit = type === 'ZENER_REGULATOR_WITH_BRIDGE_RECTIFIER';
+            const isLinearRegulator = type === 'LINEAR_REGULATOR_WITH_BRIDGE_RECTIFIER';
+            const isRcCircuit = isRcCircuitType(type);
+            const filterParams = document.getElementById('filterParams');
+            if (filterParams) filterParams.style.display = ['RC_LOW_PASS', 'RC_HIGH_PASS', 'ACTIVE_OPAMP_FILTER', 'NON_INVERTING_OPAMP', 'INVERTING_OPAMP'].includes(type) ? 'block' : 'none';
+            
+            // Show Active LPF configuration selector only for ACTIVE_OPAMP_FILTER
+            const activeLpfConfig = document.getElementById('activeLpfConfig');
+            if (activeLpfConfig) {
+                activeLpfConfig.style.display = type === 'ACTIVE_OPAMP_FILTER' ? 'block' : 'none';
+            }
+            
+            document.getElementById('chargingParams').style.display = type === 'RC_CHARGING' ? 'block' : 'none';
+            const rcComponentParams = document.getElementById('rcComponentParams');
+            if (rcComponentParams) {
+                rcComponentParams.style.display = isRcCircuit ? 'block' : 'none';
+            }
+            // Only toggle gainParams if it exists
+            const _gainParams = document.getElementById('gainParams');
+            if (_gainParams) _gainParams.style.display = ['NON_INVERTING_OPAMP', 'INVERTING_OPAMP', 'ACTIVE_OPAMP_FILTER'].includes(type) ? 'block' : 'none';
+            document.getElementById('regulatorParams').style.display = type === 'LINEAR_REGULATOR_WITH_BRIDGE_RECTIFIER' ? 'block' : 'none';
+            document.getElementById('zenerParams').style.display = isZenerCircuit ? 'block' : 'none';
+            updateVoltageLabels(type);
+            
+            // Make input voltage required for op-amp circuits
+            const inEl = document.getElementById('inputVoltage');
+            if (inEl) inEl.required = ['NON_INVERTING_OPAMP', 'INVERTING_OPAMP'].includes(type);
+
+            // Show explicit resistor controls for op-amp circuits
+            const opAmpGroup = document.getElementById('opAmpParams');
+            if (opAmpGroup) {
+                opAmpGroup.style.display = ['NON_INVERTING_OPAMP', 'INVERTING_OPAMP', 'ACTIVE_OPAMP_FILTER'].includes(type) ? 'block' : 'none';
+            }
+            
+            // Show capacitor field only for ACTIVE_OPAMP_FILTER
+            const capacitorField = document.getElementById('capacitorField');
+            if (capacitorField) {
+                capacitorField.style.display = type === 'ACTIVE_OPAMP_FILTER' ? 'block' : 'none';
+            }
+
+            const resistorTolGroup = document.getElementById('resistorToleranceGroup');
+            if (resistorTolGroup) {
+                resistorTolGroup.style.display = ['NON_INVERTING_OPAMP', 'INVERTING_OPAMP', 'ACTIVE_OPAMP_FILTER'].includes(type) ? 'none' : 'block';
+            }
+
+            const activeOpAmpToleranceNote = document.getElementById('activeOpAmpToleranceNote');
+            if (activeOpAmpToleranceNote) {
+                activeOpAmpToleranceNote.style.display = type === 'ACTIVE_OPAMP_FILTER' ? 'block' : 'none';
+            }
+            
+            // Show capacitor tolerance for capacitor-based circuits
+            const capacitorGroup = document.getElementById('capacitorToleranceGroup');
+            if (capacitorGroup) {
+                capacitorGroup.style.display = (isRcCircuit || isZenerCircuit || isLinearRegulator || type === 'ACTIVE_OPAMP_FILTER') ? 'block' : 'none';
+            }
+            
+            // Show design button if circuit type selected
+            if (type) {
+                document.getElementById('designBtn').style.display = 'inline-block';
+            } else {
+                document.getElementById('designBtn').style.display = 'none';
+            }
+        });
+
+        // DESIGN BUTTON
+        document.getElementById('designBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('designBtn');
+            if (btn.disabled) return;
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner"></span> Generating...';
+            try {
+                console.log('Design button clicked');
+                const circuitType = document.getElementById('circuitType').value;
+                console.log('Circuit type:', circuitType);
+                if (!circuitType) {
+                    showError('Please select a circuit type');
+                    return;
+                }
+
+                // For circuits that require voltage, provide a default if not specified
+                const needsVoltage = ['NON_INVERTING_OPAMP', 'INVERTING_OPAMP', 'ACTIVE_OPAMP_FILTER'].includes(circuitType);
+                const voltageValue = document.getElementById('inputVoltage').value ? parseFloat(document.getElementById('inputVoltage').value) : (needsVoltage ? 5.0 : null);
+                
+                const request = {
+                    circuit_type: circuitType,
+                    voltage_value: voltageValue,
+                    output_voltage: document.getElementById('outputVoltage').value ? parseFloat(document.getElementById('outputVoltage').value) : null,
+                    voltage_type: document.getElementById('voltageType').value,
+                    cutoff_frequency: getNumber('cutoffFreq'),
+                    time_duration: document.getElementById('timeDuration').value ? parseFloat(document.getElementById('timeDuration').value) : null,
+                    gain_setting: (() => {
+                        const r1 = getNumber('resistorOhms1', null);
+                        const r2 = getNumber('resistorOhms2', null);
+                        if (['NON_INVERTING_OPAMP', 'INVERTING_OPAMP'].includes(circuitType) && r1 && r2) {
+                            return circuitType === 'INVERTING_OPAMP' ? Math.abs(r2 / r1) : (1 + (r2 / r1));
+                        }
+                        if (circuitType === 'ACTIVE_OPAMP_FILTER') {
+                            return getNumber('gainSetting', 2.0);
+                        }
+                        return getNumber('gainSetting', null);
+                    })(),
+                    resistor_ohms: circuitType === 'ZENER_REGULATOR_WITH_BRIDGE_RECTIFIER'
+                        ? getZenerSeriesResistor(null)
+                        : isRcCircuitType(circuitType)
+                            ? getRcResistor(null)
+                            : getNumber('resistorOhms1', null),
+                    resistor_ohms_2: getNumber('resistorOhms2', null),
+                    load_current: document.getElementById('loadCurrent').value ? parseFloat(document.getElementById('loadCurrent').value) : null,
+                    dropout_voltage: document.getElementById('dropoutVoltage').value ? parseFloat(document.getElementById('dropoutVoltage').value) : null,
+                    ripple_voltage: document.getElementById('rippleVoltage').value ? parseFloat(document.getElementById('rippleVoltage').value) : null,
+                    load_resistance: document.getElementById('loadResistance').value ? parseFloat(document.getElementById('loadResistance').value) : null,
+                    min_zener_current: document.getElementById('minZenerCurrent').value ? parseFloat(document.getElementById('minZenerCurrent').value) : null,
+                    primary_voltage_rms: circuitType === 'ZENER_REGULATOR_WITH_BRIDGE_RECTIFIER' ? getNumber('inputVoltage') : null,
+                    secondary_voltage_rms: getNumber('secondaryVoltageRms'),
+                    transformer_turns_ratio: getNumber('transformerTurnsRatio'),
+                    line_frequency_hz: getNumber('lineFrequencyHz', 60),
+                    diode_forward_voltage: getNumber('diodeForwardVoltage', 0.7),
+                    is_inverting: circuitType === 'ACTIVE_OPAMP_FILTER' ? (document.getElementById('activeLpfType').value === 'inverting') : null,
+                    capacitor_farads: circuitType === 'ZENER_REGULATOR_WITH_BRIDGE_RECTIFIER'
+                        ? getZenerFilterCapacitor(null)
+                        : isRcCircuitType(circuitType)
+                            ? getRcCapacitor(null)
+                            : (document.getElementById('capacitorFarads').value ? parseFloat(document.getElementById('capacitorFarads').value) : null)
+                };
+
+                console.log('Request:', request);
+                console.log('Fetching from:', `${API_BASE}/design`);
+                const response = await fetch(`${API_BASE}/design`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(request)
+                });
+
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Response data:', data);
+                if (!response.ok) throw new Error(data.detail || 'API Error');
+
+                currentDesignData = data;
+                currentOptimizedData = null;
+                currentMonteCarloData = null;
+                currentWorstCaseData = null;
+                
+                console.log('Calling displayDesignResults');
+                displayDesignResults(data);
+                document.getElementById('analysisButtons').style.display = 'flex';
+                document.getElementById('exportButtons').style.display = 'flex';
+                
+                showSuccess('✓ Design generated successfully!');
+            } catch (e) {
+                console.error('Design Error:', e);
+                showError('Design Error: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        });
+
+        // OPTIMIZE BUTTON
+        document.getElementById('optimizeBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('optimizeBtn');
+            if (btn.disabled) return;
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner"></span> Optimizing...';
+            try {
+                if (!currentDesignData) {
+                    showError('Generate design first');
+                    return;
+                }
+
+                const request = {
+                    circuit_type: document.getElementById('circuitType').value,
+                    resistor_ohms: isRcCircuitType(document.getElementById('circuitType').value)
+                        ? getRcResistor(currentDesignData.resistor_ohms || 10000)
+                        : (currentDesignData.resistor_ohms || 10000),
+                    resistor_ohms_2: currentDesignData.resistor_ohms_2 || null,
+                    capacitor_farads: isRcCircuitType(document.getElementById('circuitType').value)
+                        ? getRcCapacitor(currentDesignData.capacitor_farads || 1e-6)
+                        : (currentDesignData.capacitor_farads || 1e-6),
+                    target_frequency: getNumber('cutoffFreq'),
+                    target_gain: getNumber('gainSetting', null),
+                    output_voltage: getNumber('outputVoltage', currentDesignData.output_voltage || currentDesignData.zener_diode_voltage || null)
+                };
+
+                if (request.circuit_type === 'ZENER_REGULATOR_WITH_BRIDGE_RECTIFIER') {
+                    request.resistor_ohms = getZenerSeriesResistor(currentDesignData.series_resistor_value || currentDesignData.series_resistor_ohms || 33);
+                    request.capacitor_farads = getZenerFilterCapacitor(currentDesignData.filter_capacitor_farads || 2200e-6);
+                    request.load_resistance = getNumber('loadResistance', currentDesignData.load_resistor_value || 100);
+                    request.primary_voltage_rms = getNumber('inputVoltage', currentDesignData.primary_voltage_rms || 120);
+                    request.secondary_voltage_rms = getNumber('secondaryVoltageRms', currentDesignData.secondary_voltage_rms || null);
+                    request.transformer_turns_ratio = getNumber('transformerTurnsRatio', currentDesignData.transformer_turns_ratio || 10);
+                    request.line_frequency_hz = getNumber('lineFrequencyHz', currentDesignData.line_frequency_hz || 60);
+                    request.diode_forward_voltage = getNumber('diodeForwardVoltage', currentDesignData.diode_forward_voltage || 0.7);
+                    request.line_tolerance_percent = parseFloat(document.getElementById('lineTolerance').value || '5');
+                }
+
+                console.log('Optimize request payload:', request);
+                const response = await fetch(`${API_BASE}/optimize`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(request)
+                });
+
+                const data = await response.json();
+                console.log('Optimize response:', data);
+                if (!response.ok) throw new Error(data.detail);
+
+                currentOptimizedData = data;
+                displayOptimizedResults(data);
+                updateCombinedResults();
+
+                const selectedOptimized = getSelectedOptimizedOption();
+                if (selectedOptimized) {
+                    applyNominalValuesToInputs(selectedOptimized);
+                }
+                
+                showSuccess('✓ Optimized components suggested!');
+            } catch (e) {
+                showError('Optimize Error: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        });
+
+        // MONTE CARLO BUTTON
+        document.getElementById('montecarloBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('montecarloBtn');
+            if (btn.disabled) return;
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner"></span> Running...';
+            try {
+                // Use selected optimized option if available, else fallback to deterministic
+                let mcSource = null;
+                const selectedOptimized = getSelectedOptimizedOption();
+                if (selectedOptimized) {
+                    mcSource = selectedOptimized;
+                } else if (currentDesignData) {
+                    mcSource = currentDesignData;
+                }
+                if (!mcSource) {
+                    showError('Generate design or select optimized option first');
+                    return;
+                }
+
+                const request = {
+                    circuit_type: document.getElementById('circuitType').value,
+                    resistor_ohms: document.getElementById('circuitType').value === 'ZENER_REGULATOR_WITH_BRIDGE_RECTIFIER'
+                        ? getZenerSeriesResistor(mcSource.series_resistor_value || mcSource.series_resistor_ohms || mcSource.resistor_ohms || 10000)
+                        : isRcCircuitType(document.getElementById('circuitType').value)
+                            ? (mcSource.resistor_ohms || getRcResistor(10000))
+                        : getNumber(
+                            'resistorOhms1',
+                            mcSource.series_resistor_value || mcSource.series_resistor_ohms || mcSource.resistor_ohms || 10000
+                        ),
+                    resistor_ohms_2: getNumber('resistorOhms2', mcSource.resistor_ohms_2 || null),
+                    capacitor_farads: document.getElementById('circuitType').value === 'ZENER_REGULATOR_WITH_BRIDGE_RECTIFIER'
+                        ? getZenerFilterCapacitor(mcSource.filter_capacitor_farads || mcSource.capacitor_farads || 1e-6)
+                        : isRcCircuitType(document.getElementById('circuitType').value)
+                            ? (mcSource.capacitor_farads || getRcCapacitor(1e-6))
+                        : (mcSource.filter_capacitor_farads || mcSource.capacitor_farads || 1e-6),
+                    voltage_value: document.getElementById('inputVoltage').value ? parseFloat(document.getElementById('inputVoltage').value) : (mcSource.secondary_voltage_rms || mcSource.input_voltage || mcSource.voltage_value || getResolvedSecondaryVoltage(1.0)),
+                    output_voltage: getNumber('outputVoltage', mcSource.output_voltage || mcSource.zener_diode_voltage || null),
+                    voltage_type: document.getElementById('voltageType').value,
+                    num_samples: parseInt(document.getElementById('numSamples').value),
+                    r1_tolerance_percent: ['NON_INVERTING_OPAMP', 'INVERTING_OPAMP', 'ACTIVE_OPAMP_FILTER'].includes(document.getElementById('circuitType').value)
+                        ? getNumber('resistorTolerance1', 5)
+                        : parseFloat(document.getElementById('rTolerance').value),
+                    r2_tolerance_percent: ['NON_INVERTING_OPAMP', 'INVERTING_OPAMP', 'ACTIVE_OPAMP_FILTER'].includes(document.getElementById('circuitType').value)
+                        ? getNumber('resistorTolerance2', 5)
+                        : null,
+                    capacitor_tolerance_percent: parseFloat(document.getElementById('cTolerance').value),
+                    line_fluctuation_percent: parseFloat(document.getElementById('lineTolerance').value),
+                    cutoff_frequency: getNumber('cutoffFreq'),
+                    load_current: getNumber('loadCurrent', mcSource.load_current || null),
+                    load_resistance: getNumber('loadResistance', mcSource.load_resistor_value || null),
+                    dropout_voltage: getNumber('dropoutVoltage', mcSource.dropout_voltage || null),
+                    ripple_voltage: getNumber('rippleVoltage', mcSource.ripple_voltage || null),
+                    min_zener_current: getNumber('minZenerCurrent', null),
+                    primary_voltage_rms: getNumber('inputVoltage', mcSource.primary_voltage_rms || null),
+                    secondary_voltage_rms: getNumber('secondaryVoltageRms', mcSource.secondary_voltage_rms || null),
+                    transformer_turns_ratio: getNumber('transformerTurnsRatio', mcSource.transformer_turns_ratio || null),
+                    line_frequency_hz: getNumber('lineFrequencyHz', mcSource.line_frequency_hz || 60),
+                    diode_forward_voltage: getNumber('diodeForwardVoltage', mcSource.diode_forward_voltage || 0.7),
+                    gain_setting: (() => {
+                        const ct = document.getElementById('circuitType').value;
+                        const r1 = getNumber('resistorOhms1', mcSource.resistor_ohms || null);
+                        const r2 = getNumber('resistorOhms2', mcSource.resistor_ohms_2 || null);
+                        if (['NON_INVERTING_OPAMP', 'INVERTING_OPAMP'].includes(ct) && r1 && r2) {
+                            return ct === 'INVERTING_OPAMP' ? Math.abs(r2 / r1) : (1 + (r2 / r1));
+                        }
+                        return getNumber('gainSetting', mcSource.gain || null);
+                    })()
+                };
+
+                const response = await fetch(`${API_BASE}/montecarlo`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(request)
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail);
+
+                currentMonteCarloData = data;
+                updateCombinedResults();
+                document.getElementById('exportButtons').style.display = 'flex';
+                showSuccess('✓ Monte Carlo analysis completed!');
+            } catch (e) {
+                showError('Monte Carlo Error: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        });
+
+        // WORST-CASE BUTTON
+        document.getElementById('worstcaseBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('worstcaseBtn');
+            if (btn.disabled) return;
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner"></span> Computing...';
+
+            if (!currentDesignData) {
+                showError('Generate design first');
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                return;
+            }
+
+            try {
+                // Call /worstcase endpoint with proper frequency parameter
+                const cutoffFreq = currentDesignData.cutoff_frequency || null;
+                
+                const request = {
+                    circuit_type: document.getElementById('circuitType').value,
+                    resistor_ohms: document.getElementById('circuitType').value === 'ZENER_REGULATOR_WITH_BRIDGE_RECTIFIER'
+                        ? getZenerSeriesResistor(currentDesignData.series_resistor_value || currentDesignData.series_resistor_ohms || currentDesignData.resistor_ohms || 10000)
+                        : isRcCircuitType(document.getElementById('circuitType').value)
+                            ? getRcResistor(currentDesignData.resistor_ohms || 10000)
+                        : getNumber(
+                            'resistorOhms1',
+                            currentDesignData.series_resistor_value || currentDesignData.series_resistor_ohms || currentDesignData.resistor_ohms || 10000
+                        ),
+                    resistor_ohms_2: getNumber('resistorOhms2', currentDesignData.resistor_ohms_2 || null),
+                    capacitor_farads: document.getElementById('circuitType').value === 'ZENER_REGULATOR_WITH_BRIDGE_RECTIFIER'
+                        ? getZenerFilterCapacitor(currentDesignData.filter_capacitor_farads || currentDesignData.capacitor_farads || 1e-6)
+                        : isRcCircuitType(document.getElementById('circuitType').value)
+                            ? getRcCapacitor(currentDesignData.capacitor_farads || 1e-6)
+                        : (currentDesignData.filter_capacitor_farads || currentDesignData.capacitor_farads || 1e-6),
+                    voltage_value: currentDesignData.secondary_voltage_rms || currentDesignData.input_voltage || currentDesignData.voltage_value || getResolvedSecondaryVoltage(12),
+                    output_voltage: getNumber('outputVoltage', currentDesignData.output_voltage || currentDesignData.zener_diode_voltage || null),
+                    voltage_type: document.getElementById('voltageType').value,
+                    r1_tolerance_percent: ['NON_INVERTING_OPAMP', 'INVERTING_OPAMP', 'ACTIVE_OPAMP_FILTER'].includes(document.getElementById('circuitType').value)
+                        ? getNumber('resistorTolerance1', 5)
+                        : (parseFloat(document.getElementById('rTolerance').value) || 5),
+                    r2_tolerance_percent: ['NON_INVERTING_OPAMP', 'INVERTING_OPAMP', 'ACTIVE_OPAMP_FILTER'].includes(document.getElementById('circuitType').value)
+                        ? getNumber('resistorTolerance2', 5)
+                        : null,
+                    capacitor_tolerance_percent: parseFloat(document.getElementById('cTolerance').value) || 5,
+                    line_fluctuation_percent: parseFloat(document.getElementById('lineTolerance').value) || 2,
+                    time_duration: document.getElementById('timeDuration').value ? parseFloat(document.getElementById('timeDuration').value) : null,
+                    load_current: getNumber('loadCurrent', currentDesignData.load_current || null),
+                    load_resistance: getNumber('loadResistance', currentDesignData.load_resistor_value || null),
+                    dropout_voltage: getNumber('dropoutVoltage', currentDesignData.dropout_voltage || null),
+                    ripple_voltage: getNumber('rippleVoltage', currentDesignData.ripple_voltage || null),
+                    min_zener_current: getNumber('minZenerCurrent', null),
+                    primary_voltage_rms: getNumber('inputVoltage', currentDesignData.primary_voltage_rms || null),
+                    secondary_voltage_rms: getNumber('secondaryVoltageRms', currentDesignData.secondary_voltage_rms || null),
+                    transformer_turns_ratio: getNumber('transformerTurnsRatio', currentDesignData.transformer_turns_ratio || null),
+                    line_frequency_hz: getNumber('lineFrequencyHz', currentDesignData.line_frequency_hz || 60),
+                    diode_forward_voltage: getNumber('diodeForwardVoltage', currentDesignData.diode_forward_voltage || 0.7),
+                    gain_setting: (() => {
+                        const ct = document.getElementById('circuitType').value;
+                        const r1 = getNumber('resistorOhms1', currentDesignData.resistor_ohms || null);
+                        const r2 = getNumber('resistorOhms2', currentDesignData.resistor_ohms_2 || null);
+                        if (['NON_INVERTING_OPAMP', 'INVERTING_OPAMP'].includes(ct) && r1 && r2) {
+                            return ct === 'INVERTING_OPAMP' ? Math.abs(r2 / r1) : (1 + (r2 / r1));
+                        }
+                        return getNumber('gainSetting', currentDesignData.gain || null);
+                    })(),
+                    cutoff_frequency: cutoffFreq
+                };
+
+                console.log('Worst-Case Request:', request);
+                const response = await fetch(`${API_BASE}/worstcase`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(request)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'API Error');
+                }
+
+                const wcResponse = await response.json();
+                console.log('Worst-Case Response:', wcResponse);
+                
+                // Convert to expected format for display
+                currentWorstCaseData = {
+                    analysis_data: wcResponse.analysis_data,
+                    summary: wcResponse.summary
+                };
+                
+                document.getElementById('exportButtons').style.display = 'flex';
+                updateCombinedResults();
+                showSuccess('✓ Worst-case analysis completed with frequency-dependent Vout!');
+            } catch (e) {
+                console.error('Worst-Case Error:', e);
+                showError('Worst-Case Error: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        });
+
+        // Compute worst-case from Monte Carlo samples
+        function computeWorstCaseFromMC(mcData) {
+            const wcData = { analysis_data: {} };
+            
+            for (const [key, metric] of Object.entries(mcData.metrics)) {
+                const absMin = metric.absolute_min !== undefined ? metric.absolute_min : (metric.min_value || 0);
+                const absMax = metric.absolute_max !== undefined ? metric.absolute_max : (metric.max_value || 0);
+                
+                wcData.analysis_data[key] = {
+                    nominal: metric.mean || 0,
+                    minimum: absMin,
+                    maximum: absMax,
+                    absolute_min: absMin,
+                    absolute_max: absMax
+                };
+                
+                if (key === 'capacitor') {
+                    console.log(`Capacitor WC: nominal=${metric.mean}, min=${absMin}, max=${absMax}`);
+                }
+            }
+            
+            console.log('Final WC data:', wcData);
+            return wcData;
+        }
+
+        // MATLAB BUTTON
+        document.getElementById('matlabBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('matlabBtn');
+            if (btn.disabled) return;
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner"></span> Generating...';
+            
+            if (!currentDesignData) {
+                showError('Generate design first');
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                return;
+            }
+
+            const request = buildMatlabRequest();
+
+            try {
+                console.log('Sending MATLAB request:', request);
+                const response = await fetch(`${API_BASE}/matlab`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(request),
+                    timeout: 30000  // 30 second timeout
+                });
+
+                console.log('MATLAB response status:', response.status);
+                const data = await response.json();
+                console.log('MATLAB response data size:', JSON.stringify(data).length);
+                if (!response.ok) throw new Error(data.detail || response.statusText);
+
+                document.getElementById('matlabCode').textContent = data.matlab_code;
+                document.getElementById('matlabSection').style.display = 'block';
+                showSuccess('✓ MATLAB code generated!');
+            } catch (e) {
+                console.error('MATLAB Error:', e);
+                showError('MATLAB Error: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        });
+
+        // COPY MATLAB CODE
+        document.getElementById('copyMatlabBtn').addEventListener('click', () => {
+            const code = document.getElementById('matlabCode').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                showSuccess('Code copied to clipboard!');
+            });
+        });
+
+        // EXPORT CSV BUTTON
+        // EXPORT NOMINAL CSV BUTTON
+        document.getElementById('exportNominalBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('exportNominalBtn');
+            if (btn.disabled) return;
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner"></span> Exporting...';
+            
+            if (!currentDesignData && !currentOptimizedData) {
+                showError('No nominal data to export');
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                return;
+            }
+            const request = {
+                type: 'nominal',
+                deterministic: currentDesignData,
+                optimized: currentOptimizedData
+            };
+            await exportCsvRequest(request, 'nominal', btn, originalHTML);
+        });
+
+        // EXPORT MC CSV BUTTON
+        document.getElementById('exportMCBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('exportMCBtn');
+            if (btn.disabled) return;
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner"></span> Exporting...';
+            
+            if (!currentMonteCarloData) {
+                showError('No Monte Carlo data to export');
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                return;
+            }
+            const request = {
+                type: 'mc',
+                mc_results: currentMonteCarloData,
+                num_samples: parseInt(document.getElementById('numSamples').value)
+            };
+            await exportCsvRequest(request, 'mc', btn, originalHTML);
+        });
+
+        // EXPORT WC CSV BUTTON
+        document.getElementById('exportWcBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('exportWcBtn');
+            if (btn.disabled) return;
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner"></span> Exporting...';
+            
+            if (!currentWorstCaseData) {
+                showError('No worst-case data to export');
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                return;
+            }
+            const request = {
+                type: 'wc',
+                worst_case: currentWorstCaseData
+            };
+            await exportCsvRequest(request, 'wc', btn, originalHTML);
+        });
+
+        // Helper for CSV export
+        async function exportCsvRequest(request, label, btn, originalHTML) {
+            try {
+                const response = await fetch(`${API_BASE}/download_csv`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(request)
+                });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to export CSV');
+                }
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `circuit_analysis_${label}_${new Date().toISOString().slice(0, 10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showSuccess('✓ CSV file downloaded successfully!');
+            } catch (e) {
+                showError('Export Error: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        }
+
+        // EXPLAIN BUTTON
+        document.getElementById('explainBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('explainBtn');
+            if (btn.disabled) return;
+            
+            const concept = prompt('What circuit concept would you like explained?', 'cutoff frequency');
+            if (!concept) return;
+            
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner"></span> Generating...';
+
+            const request = {
+                concept: concept,
+                circuit_type: document.getElementById('circuitType').value || 'RC_LOW_PASS',
+                context: `Tolerances: R±${document.getElementById('rTolerance').value}%, C±${document.getElementById('cTolerance').value}%`
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/explain`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(request)
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail);
+
+                document.getElementById('explainResults').innerHTML = `
+                    <p><strong>${data.concept}</strong></p>
+                    <p>${data.explanation}</p>
+                    <small>Source: ${data.source}</small>
+                `;
+                document.getElementById('explainSection').style.display = 'block';
+            } catch (e) {
+                showError('Explain Error: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        });
+
+        // DISPLAY FUNCTIONS
+        function displayDesignResults(data) {
+            const circuitType = document.getElementById('circuitType') ? document.getElementById('circuitType').value : '';
+            const isSimpleOpAmp = ['NON_INVERTING_OPAMP', 'INVERTING_OPAMP'].includes(circuitType);
+            const isActiveFilter = circuitType === 'ACTIVE_OPAMP_FILTER';
+            const isZener = circuitType === 'ZENER_REGULATOR_WITH_BRIDGE_RECTIFIER';
+            const isLinearRegulator = circuitType === 'LINEAR_REGULATOR_WITH_BRIDGE_RECTIFIER';
+
+            let html = '<table class="results-table"><tr><th>Parameter</th><th>Value</th></tr>';
+            
+            if (data.resistor_display) html += `<tr><td>Resistor</td><td>${data.resistor_display}</td></tr>`;
+            if (data.resistor_display_2) html += `<tr><td>Feedback Resistor</td><td>${data.resistor_display_2}</td></tr>`;
+            if (!isSimpleOpAmp && data.capacitor_display) html += `<tr><td>Capacitor</td><td>${data.capacitor_display}</td></tr>`;
+            if ((isZener || isLinearRegulator) && data.series_resistor_display) html += `<tr><td>Series Resistor</td><td>${data.series_resistor_display}</td></tr>`;
+            if ((isZener || isLinearRegulator) && data.filter_capacitor_display) html += `<tr><td>Filter Capacitor</td><td>${data.filter_capacitor_display}</td></tr>`;
+            if ((isZener || isLinearRegulator) && data.primary_voltage_rms !== undefined && data.primary_voltage_rms !== null) html += `<tr><td>Primary RMS Voltage</td><td>${Number(data.primary_voltage_rms).toFixed(4)} V</td></tr>`;
+            if ((isZener || isLinearRegulator) && data.secondary_voltage_rms !== undefined && data.secondary_voltage_rms !== null) html += `<tr><td>Secondary RMS Voltage</td><td>${Number(data.secondary_voltage_rms).toFixed(4)} V</td></tr>`;
+            if ((isZener || isLinearRegulator) && data.transformer_turns_ratio !== undefined && data.transformer_turns_ratio !== null) html += `<tr><td>Transformer Turns Ratio</td><td>${Number(data.transformer_turns_ratio).toFixed(4)} : 1</td></tr>`;
+            if ((isZener || isLinearRegulator) && data.line_frequency_hz !== undefined && data.line_frequency_hz !== null) html += `<tr><td>Line Frequency</td><td>${Number(data.line_frequency_hz).toFixed(2)} Hz</td></tr>`;
+            if ((isZener || isLinearRegulator) && data.diode_forward_voltage !== undefined && data.diode_forward_voltage !== null) html += `<tr><td>Diode Forward Drop</td><td>${Number(data.diode_forward_voltage).toFixed(4)} V</td></tr>`;
+            if (data.input_voltage !== undefined && data.input_voltage !== null) html += `<tr><td>Input Voltage</td><td>${Number(data.input_voltage).toFixed(4)} V</td></tr>`;
+            if (data.output_voltage !== undefined && data.output_voltage !== null) html += `<tr><td>Output Voltage</td><td>${Number(data.output_voltage).toFixed(4)} V</td></tr>`;
+            if ((isZener || isLinearRegulator) && data.peak_input_voltage !== undefined) html += `<tr><td>Peak Rectified Voltage</td><td>${Number(data.peak_input_voltage).toFixed(4)} V</td></tr>`;
+            if (data.gain) html += `<tr><td>Gain</td><td>${data.gain.toFixed(4)}</td></tr>`;
+            if (!isSimpleOpAmp && data.cutoff_frequency) html += `<tr><td>Cutoff Freq</td><td>${data.cutoff_frequency.toFixed(2)} Hz</td></tr>`;
+            if (!isSimpleOpAmp && data.time_constant) html += `<tr><td>Time Constant</td><td>${data.time_constant.toFixed(6)} s</td></tr>`;
+            if (isZener && data.zener_diode_voltage !== undefined) html += `<tr><td>Zener Diode Voltage</td><td>${Number(data.zener_diode_voltage).toFixed(4)} V</td></tr>`;
+            if (isZener && data.zener_diode_power !== undefined) html += `<tr><td>Zener Diode Power</td><td>${Number(data.zener_diode_power).toFixed(2)} mW</td></tr>`;
+            if ((isZener || isLinearRegulator) && data.series_resistor_power !== undefined) html += `<tr><td>Series Resistor Power</td><td>${Number(data.series_resistor_power).toFixed(4)} W</td></tr>`;
+            if (isZener && data.load_resistor_value !== undefined) html += `<tr><td>Load Resistance</td><td>${Number(data.load_resistor_value).toFixed(2)} Ω</td></tr>`;
+            if (isZener && data.no_load_current !== undefined) html += `<tr><td>No-Load Current</td><td>${Number(data.no_load_current).toFixed(4)} A</td></tr>`;
+            if (isZener && data.full_load_current !== undefined) html += `<tr><td>Full-Load Zener Current</td><td>${Number(data.full_load_current).toFixed(4)} A</td></tr>`;
+            if (data.transfer_function) html += `<tr><td>Transfer Fn</td><td><code>${data.transfer_function}</code></td></tr>`;
+            
+            html += '</table>';
+
+            if (data.derivation && data.derivation.length > 0) {
+                html += '<details><summary>📋 Show Derivation Steps</summary><ol>';
+                data.derivation.forEach(step => html += `<li>${step}</li>`);
+                html += '</ol></details>';
+            }
+
+            document.getElementById('designResults').innerHTML = html;
+            document.getElementById('designSection').style.display = 'block';
+        }
+
+        function displayOptimizedResults(data) {
+            console.log('displayOptimizedResults called with', data);
+            const circuitType = document.getElementById('circuitType') ? document.getElementById('circuitType').value : '';
+            const isSimpleOpAmp = ['NON_INVERTING_OPAMP', 'INVERTING_OPAMP'].includes(circuitType);
+            const isZener = circuitType === 'ZENER_REGULATOR_WITH_BRIDGE_RECTIFIER';
+
+            // If backend returned multiple optimized options
+            if (data.optimized_options && Array.isArray(data.optimized_options)) {
+                // Parse recommended option index (if model suggested one)
+                const parseRecommendationIndex = (text) => {
+                    if (!text) return null;
+                    const m = text.match(/Option\s*(\d+)/i);
+                    if (m && m[1]) return parseInt(m[1], 10) - 1;
+                    return null;
+                };
+
+                const options = data.optimized_options;
+                const recommendedIdx = parseRecommendationIndex(data.recommendation);
+                const defaultSelectedIdx = (recommendedIdx != null && recommendedIdx >= 0 && recommendedIdx < options.length)
+                    ? recommendedIdx
+                    : (options.length > 0 ? 0 : null);
+
+                // store options and selection state
+                currentOptimizedData = { options: options, selected_index: defaultSelectedIdx };
+
+                let html = '<div class="opt-options">';
+                options.forEach((opt, idx) => {
+                    const isSelected = currentOptimizedData.selected_index === idx;
+                    html += `<div class="opt-card" style="${isSelected ? 'border:2px solid #34d399;background:#f0fff4;' : ''}">`;
+                    html += `<div style="display:flex;align-items:center;justify-content:space-between;"><strong>Option ${idx+1}${isSelected ? ' ✓' : ''}</strong><button class="btn btn-sm select-btn${isSelected ? ' selected' : ''}" style="${isSelected ? 'background:#34d399;color:white;' : ''}" onclick="selectOptimizedOption(${idx})">Select</button></div>`;
+                    html += '<table class="results-table" style="margin-top:8px;">';
+                    if (isZener) {
+                        if (opt.series_resistor_display) html += `<tr><td>Series Resistor</td><td>${opt.series_resistor_display}</td></tr>`;
+                        if (opt.filter_capacitor_display) html += `<tr><td>Filter Capacitor</td><td>${opt.filter_capacitor_display}</td></tr>`;
+                        if (opt.output_voltage) html += `<tr><td>Target Output</td><td>${opt.output_voltage} V</td></tr>`;
+                        if (opt.estimated_full_load_zener_current !== undefined) html += `<tr><td>Full-Load Zener Current</td><td>${(opt.estimated_full_load_zener_current * 1000).toFixed(1)} mA</td></tr>`;
+                        if (opt.estimated_no_load_zener_power !== undefined) html += `<tr><td>No-Load Zener Power</td><td>${opt.estimated_no_load_zener_power.toFixed(2)} W</td></tr>`;
+                        if (opt.estimated_resistor_power !== undefined) html += `<tr><td>Max Resistor Power</td><td>${opt.estimated_resistor_power.toFixed(2)} W</td></tr>`;
+                        if (opt.recommended_resistor_watts) html += `<tr><td>Suggested Resistor Rating</td><td>${opt.recommended_resistor_watts} W</td></tr>`;
+                        if (opt.recommended_zener_watts) html += `<tr><td>Suggested Zener Rating</td><td>${opt.recommended_zener_watts} W</td></tr>`;
+                        if (opt.safe_at_full_load !== undefined) html += `<tr><td>Regulation Margin</td><td>${opt.safe_at_full_load ? 'Safe at full load' : 'Too little margin'}</td></tr>`;
+                    } else {
+                        if (opt.resistor_display) html += `<tr><td>Resistor</td><td>${opt.resistor_display}</td></tr>`;
+                        if (opt.resistor_display_2) html += `<tr><td>Feedback Resistor</td><td>${opt.resistor_display_2}</td></tr>`;
+                        if (!isSimpleOpAmp && opt.capacitor_display) html += `<tr><td>Capacitor</td><td>${opt.capacitor_display}</td></tr>`;
+                        if (!isSimpleOpAmp && opt.cutoff_frequency) html += `<tr><td>Cutoff Freq</td><td>${opt.cutoff_frequency.toFixed ? opt.cutoff_frequency.toFixed(2) + ' Hz' : opt.cutoff_frequency}</td></tr>`;
+                        if (opt.gain) html += `<tr><td>Gain</td><td>${typeof opt.gain === 'number' ? opt.gain.toFixed(4) : opt.gain}</td></tr>`;
+                    }
+                    html += '</table>';
+                    if (opt.reasoning) html += `<details><summary>Reasoning</summary><div style="padding:8px">${opt.reasoning}</div></details>`;
+                    html += '</div>';
+                });
+                html += '</div>';
+                document.getElementById('optimizedResults').innerHTML = html;
+                document.getElementById('optimizedSection').style.display = 'block';
+
+                // show recommendation if present
+                if (data.recommendation) {
+                    const recHtml = `<div style="margin-top:8px;padding:10px;border-left:4px solid #667eea;background:#f7fbff;">` +
+                        `<strong>Model Recommendation:</strong><div style="margin-top:6px;white-space:pre-wrap">${data.recommendation}</div></div>`;
+                    document.getElementById('optimizedResults').insertAdjacentHTML('beforeend', recHtml);
+                }
+
+                // If model suggested an option, update combined results automatically
+                if (currentOptimizedData.selected_index !== null) {
+                    applyNominalValuesToInputs(currentOptimizedData.options[currentOptimizedData.selected_index]);
+                    updateCombinedResults();
+                    showSuccess((recommendedIdx != null ? 'Model recommended Option ' : 'Defaulted to Option ') + (currentOptimizedData.selected_index + 1));
+                }
+                return;
+            }
+
+            // Fallback: single optimized object
+            let html = '<table class="results-table"><tr><th>Parameter</th><th>Optimized Value</th><th>Rationale</th></tr>';
+            if (isZener) {
+                if (data.series_resistor_display) html += `<tr><td>Series Resistor</td><td>${data.series_resistor_display}</td><td>Closest E24 value</td></tr>`;
+                if (data.filter_capacitor_display) html += `<tr><td>Filter Capacitor</td><td>${data.filter_capacitor_display}</td><td>Standard capacitor value</td></tr>`;
+                if (data.output_voltage) html += `<tr><td>Target Output</td><td>${data.output_voltage} V</td><td>Zener nominal voltage</td></tr>`;
+            } else {
+                if (data.resistor_display) html += `<tr><td>Input Resistor (R1)</td><td>${data.resistor_display}</td><td>E24 standard value</td></tr>`;
+                if (data.resistor_display_2) html += `<tr><td>Feedback Resistor (R2)</td><td>${data.resistor_display_2}</td><td>E24 standard value</td></tr>`;
+                if (!isSimpleOpAmp && data.capacitor_display) html += `<tr><td>Capacitor</td><td>${data.capacitor_display}</td><td>Standard tolerance component</td></tr>`;
+                if (data.gain) html += `<tr><td>Resulting Gain</td><td>${data.gain.toFixed(4)}</td><td>Closest to target ${data.target_gain}</td></tr>`;
+                if (data.gain_error_percent !== undefined) html += `<tr><td>Gain Accuracy</td><td>${(100 - data.gain_error_percent).toFixed(2)}%</td><td>Error: ${data.gain_error_percent.toFixed(2)}%</td></tr>`;
+                if (!isSimpleOpAmp && data.cutoff_frequency) html += `<tr><td>Cutoff Freq</td><td>${data.cutoff_frequency.toFixed(2)} Hz</td><td>Within tolerance</td></tr>`;
+            }
+            html += '</table>';
+            
+            // Add detailed explanation
+            if (data.optimization_notes && data.optimization_notes.length > 0) {
+                html += '<details><summary>📋 Optimization Details</summary><ul>';
+                data.optimization_notes.forEach(note => html += `<li>${note}</li>`);
+                html += '</ul></details>';
+            }
+            
+            document.getElementById('optimizedResults').innerHTML = html;
+            document.getElementById('optimizedSection').style.display = 'block';
+        }
+
+        function selectOptimizedOption(idx) {
+            if (!currentOptimizedData || !currentOptimizedData.options) return;
+            // set selected index but keep the full options array
+            currentOptimizedData.selected_index = idx;
+            const selected = currentOptimizedData.options[idx];
+            applyNominalValuesToInputs(selected);
+            // re-render optimized options to show highlight
+            displayOptimizedResults({ optimized_options: currentOptimizedData.options, recommendation: `Selected Option ${idx+1}` });
+            // update combined results to include optimized column
+            updateCombinedResults();
+            showSuccess('Selected optimized option ' + (idx+1));
+        }
+
+        function updateCombinedResults() {
+            if (!currentDesignData && !currentMonteCarloData && !currentWorstCaseData) return;
+
+            // Determine if circuit is op-amp type
+            const circuitType = document.getElementById('circuitType') ? document.getElementById('circuitType').value : '';
+            const isSimpleOpAmp = ['NON_INVERTING_OPAMP', 'INVERTING_OPAMP'].includes(circuitType);
+            const isOpAmp = ["NON_INVERTING_OPAMP", "INVERTING_OPAMP", "ACTIVE_OPAMP_FILTER"].includes(circuitType);
+            const isActiveFilter = circuitType === 'ACTIVE_OPAMP_FILTER';
+            const isZener = circuitType === 'ZENER_REGULATOR_WITH_BRIDGE_RECTIFIER';
+
+            // Collect all metrics
+            const allMetrics = new Set();
+            if (currentDesignData && (currentDesignData.resistor_display || currentDesignData.series_resistor_display)) {
+                if (isZener) {
+                    [
+                        'V Primary RMS',
+                        'V Primary Peak',
+                        'V Secondary RMS',
+                        'V Secondary Peak',
+                        'N',
+                        "Vpp'",
+                        'tb',
+                        'IFL',
+                        'IS',
+                        'IZT',
+                        'IL',
+                        'Vout',
+                        'VCF',
+                        'Vripple',
+                        'RS',
+                        'C'
+                    ].forEach(metric => allMetrics.add(metric));
+                } else {
+                    allMetrics.add('Input Voltage (V)');
+                    allMetrics.add('Output Voltage (V)');
+                    // For op-amp circuits show R1 and R2 separately
+                    if (isOpAmp) {
+                        allMetrics.add('Resistor R1 (Ω)');
+                        allMetrics.add('Resistor R2 (Ω)');
+                    } else {
+                        allMetrics.add('Resistor (Ω)');
+                    }
+                    if (!isSimpleOpAmp || isActiveFilter) allMetrics.add('Capacitor (F)');
+                    if (isOpAmp) allMetrics.add('Gain');
+                    if (!isSimpleOpAmp || isActiveFilter) {
+                        allMetrics.add('Cutoff Freq (Hz)');
+                        allMetrics.add('Time Constant (s)');
+                    }
+                    if (currentDesignData.output_voltage !== undefined) allMetrics.add('Output Voltage (V)');
+                }
+            }
+
+            // Nominal Table
+            let nominalHtml = '';
+            if (currentDesignData || currentOptimizedData) {
+                nominalHtml += '<h3>Nominal (Deterministic/Optimized)</h3>';
+                nominalHtml += '<table class="results-table" style="font-size: 13px;">';
+                nominalHtml += '<tr><th>Metric</th>';
+                if (currentDesignData) nominalHtml += '<th>Deterministic</th>';
+                if (currentOptimizedData) nominalHtml += '<th>Optimized</th>';
+                nominalHtml += '</tr>';
+                allMetrics.forEach(metric => {
+                    nominalHtml += '<tr><td><strong>' + metric + '</strong></td>';
+                    if (currentDesignData) {
+                        let val = getMetricValue(currentDesignData, metric, 'det');
+                        // Patch time constant for deterministic
+                        if (metric.includes('Time Constant') && (val === 'N/A' || val === undefined)) {
+                            if (currentDesignData.resistor_ohms && currentDesignData.capacitor_farads) {
+                                val = (currentDesignData.resistor_ohms * currentDesignData.capacitor_farads).toFixed(6);
+                            }
+                        }
+                        nominalHtml += `<td>${val}</td>`;
+                    }
+                    if (currentOptimizedData) {
+                        let optVal = '';
+                        let selectedOpt = null;
+                        if (Array.isArray(currentOptimizedData.options) && typeof currentOptimizedData.selected_index === 'number' && currentOptimizedData.options[currentOptimizedData.selected_index]) {
+                            selectedOpt = { ...currentOptimizedData.options[currentOptimizedData.selected_index] };
+                        } else if (currentOptimizedData) {
+                            selectedOpt = { ...currentOptimizedData };
+                        }
+                        // Patch in input/output voltage from deterministic if missing
+                        if (selectedOpt) {
+                            if ((metric.includes('Input Voltage') || metric.includes('input_voltage')) && (selectedOpt.input_voltage === undefined && selectedOpt.voltage_value === undefined) && currentDesignData) {
+                                selectedOpt.input_voltage = currentDesignData.input_voltage !== undefined ? currentDesignData.input_voltage : currentDesignData.voltage_value;
+                            }
+                            if ((metric.includes('Output Voltage') || metric.includes('output_voltage')) && selectedOpt.output_voltage === undefined && currentDesignData && currentDesignData.output_voltage !== undefined) {
+                                selectedOpt.output_voltage = currentDesignData.output_voltage;
+                            }
+                            // Patch time constant for optimized
+                            if (metric.includes('Time Constant') && (selectedOpt.time_constant === undefined || selectedOpt.time_constant === null)) {
+                                if (selectedOpt.resistor_ohms && selectedOpt.capacitor_farads) {
+                                    selectedOpt.time_constant = (selectedOpt.resistor_ohms * selectedOpt.capacitor_farads);
+                                }
+                            }
+                            optVal = getMetricValue(selectedOpt, metric, 'opt');
+                        } else {
+                            optVal = getMetricValue(currentOptimizedData, metric, 'opt');
+                        }
+                        nominalHtml += `<td>${optVal}</td>`;
+                        // Show transfer function for optimized if present and not already shown
+                        if (metric === 'Cutoff Freq (Hz)' && selectedOpt && selectedOpt.transfer_function) {
+                            nominalHtml += `</tr><tr><td><strong>Transfer Function</strong></td><td colspan="2" style="font-family:monospace;font-size:12px;">${selectedOpt.transfer_function}</td>`;
+                        }
+                    }
+                    nominalHtml += '</tr>';
+                });
+                nominalHtml += '</table>';
+            }
+
+            // Monte Carlo Table
+            let mcHtml = '';
+            if (currentMonteCarloData) {
+                mcHtml += '<h3>Monte Carlo (MC) Statistics</h3>';
+                mcHtml += '<table class="results-table" style="font-size: 13px;">';
+                mcHtml += '<tr><th>Metric</th><th>MC Mean</th><th>MC Std Dev</th><th>MC Min</th><th>MC Max</th></tr>';
+                allMetrics.forEach(metric => {
+                    mcHtml += '<tr><td><strong>' + metric + '</strong></td>';
+                    const mcKey = getMetricKey(metric);
+                    const mcMetric = currentMonteCarloData.metrics[mcKey]
+                        || getDerivedActiveFilterStats(metric, 'mc')
+                        || getDerivedZenerAnalysisStats(metric, 'mc');
+                    if (mcMetric) {
+                        const formatValue = (val, key) => {
+                            if (val === null || val === undefined) return '0';
+                            if (Math.abs(val) < 1e-4 && Math.abs(val) > 0) {
+                                return val.toExponential(4);
+                            }
+                            return val.toFixed(4);
+                        };
+                        mcHtml += `<td>${formatValue(mcMetric.mean ?? 0, mcKey)}</td>`;
+                        mcHtml += `<td>${formatValue(mcMetric.std_dev ?? 0, mcKey)}</td>`;
+                        mcHtml += `<td>${formatValue((mcMetric.min_value ?? mcMetric.min) ?? 0, mcKey)}</td>`;
+                        mcHtml += `<td>${formatValue((mcMetric.max_value ?? mcMetric.max) ?? 0, mcKey)}</td>`;
+                    } else {
+                        mcHtml += '<td>-</td><td>-</td><td>-</td><td>-</td>';
+                    }
+                    mcHtml += '</tr>';
+                });
+                mcHtml += '</table>';
+            }
+
+            // Worst-Case Table
+            let wcHtml = '';
+            if (currentWorstCaseData) {
+                wcHtml += '<h3>Worst-Case (WC) Values</h3>';
+                wcHtml += '<table class="results-table" style="font-size: 13px;">';
+                wcHtml += '<tr><th>Metric</th><th>WC Stat Min</th><th>WC Stat Max</th><th>WC Abs Min</th><th>WC Abs Max</th></tr>';
+                allMetrics.forEach(metric => {
+                    wcHtml += '<tr><td><strong>' + metric + '</strong></td>';
+                    const wcKey = getMetricKey(metric);
+                    const wcData = currentWorstCaseData.analysis_data[wcKey]
+                        || getDerivedActiveFilterStats(metric, 'wc')
+                        || getDerivedZenerAnalysisStats(metric, 'wc');
+                    if (wcData) {
+                        const statMin = (wcData.minimum !== undefined) ? wcData.minimum : '-';
+                        const statMax = (wcData.maximum !== undefined) ? wcData.maximum : '-';
+                        const absMin = (wcData.absolute_min !== undefined) ? wcData.absolute_min : '-';
+                        const absMax = (wcData.absolute_max !== undefined) ? wcData.absolute_max : '-';
+                        const formatWC = (val) => {
+                            if (val === null || val === undefined || val === '-') return '0';
+                            if (Math.abs(val) < 1e-4 && Math.abs(val) > 0) {
+                                return val.toExponential(4);
+                            }
+                            return val.toFixed ? val.toFixed(4) : val;
+                        };
+                        wcHtml += `<td>${formatWC(statMin)}</td>`;
+                        wcHtml += `<td>${formatWC(statMax)}</td>`;
+                        wcHtml += `<td>${formatWC(absMin)}</td>`;
+                        wcHtml += `<td>${formatWC(absMax)}</td>`;
+                    } else {
+                        wcHtml += '<td>-</td><td>-</td><td>-</td><td>-</td>';
+                    }
+                    wcHtml += '</tr>';
+                });
+                wcHtml += '</table>';
+            }
+
+            document.getElementById('nominalTable').innerHTML = nominalHtml;
+            document.getElementById('mcTable').innerHTML = mcHtml;
+            document.getElementById('wcTable').innerHTML = wcHtml;
+            document.getElementById('resultsTableSection').style.display = 'block';
+        }
+
+        function getDerivedActiveFilterStats(metric, mode) {
+            if (!currentDesignData || document.getElementById('circuitType').value !== 'ACTIVE_OPAMP_FILTER') {
+                return null;
+            }
+
+            const metricType = metric.includes('Cutoff')
+                ? 'cutoff_frequency'
+                : (metric.includes('Time') ? 'time_constant' : null);
+
+            if (!metricType) {
+                return null;
+            }
+
+            const safeNumber = (value) => {
+                const num = Number(value);
+                return Number.isFinite(num) ? num : null;
+            };
+
+            const nominalR2 = safeNumber(currentDesignData.resistor_ohms_2 ?? currentDesignData.resistor_ohms);
+            const nominalC = safeNumber(currentDesignData.capacitor_farads);
+
+            if (nominalR2 === null || nominalC === null || nominalR2 <= 0 || nominalC <= 0) {
+                return null;
+            }
+
+            const toleranceOrDefault = (value) => {
+                const num = safeNumber(value);
+                return num === null ? 5 : num;
+            };
+
+            const r2TolPct = toleranceOrDefault(document.getElementById('resistorTolerance2')?.value);
+            const cTolPct = toleranceOrDefault(document.getElementById('cTolerance')?.value);
+            const r2Tol = r2TolPct / 100;
+            const cTol = cTolPct / 100;
+
+            const tauNominal = nominalR2 * nominalC;
+            const tauMin = nominalR2 * (1 - r2Tol) * nominalC * (1 - cTol);
+            const tauMax = nominalR2 * (1 + r2Tol) * nominalC * (1 + cTol);
+            const fcNominal = 1 / (2 * Math.PI * tauNominal);
+            const fcMin = 1 / (2 * Math.PI * tauMax);
+            const fcMax = 1 / (2 * Math.PI * tauMin);
+
+            if (mode === 'mc') {
+                const resistor2Metric = currentMonteCarloData?.metrics?.resistor_2;
+                const capacitorMetric = currentMonteCarloData?.metrics?.capacitor;
+
+                if (!resistor2Metric || !capacitorMetric) {
+                    return null;
+                }
+
+                if (metricType === 'time_constant') {
+                    return {
+                        mean: tauNominal,
+                        std_dev: tauNominal * Math.sqrt((r2Tol ** 2 + cTol ** 2) / 3),
+                        min_value: tauMin,
+                        max_value: tauMax
+                    };
+                }
+
+                return {
+                    mean: fcNominal,
+                    std_dev: fcNominal * Math.sqrt((r2Tol ** 2 + cTol ** 2) / 3),
+                    min_value: fcMin,
+                    max_value: fcMax
+                };
+            }
+
+            if (mode === 'wc') {
+                if (metricType === 'time_constant') {
+                    return {
+                        minimum: tauMin,
+                        maximum: tauMax,
+                        absolute_min: tauMin,
+                        absolute_max: tauMax,
+                        nominal: tauNominal
+                    };
+                }
+
+                return {
+                    minimum: fcMin,
+                    maximum: fcMax,
+                    absolute_min: fcMin,
+                    absolute_max: fcMax,
+                    nominal: fcNominal
+                };
+            }
+
+            return null;
+        }
+
+        function getDerivedZenerAnalysisStats(metric, mode) {
+            if (!currentDesignData || document.getElementById('circuitType').value !== 'ZENER_REGULATOR_WITH_BRIDGE_RECTIFIER') {
+                return null;
+            }
+
+            const turnsRatio = currentDesignData.transformer_turns_ratio ?? 10;
+            const lineFrequency = currentDesignData.line_frequency_hz ?? 60;
+            const diodeDrop = currentDesignData.diode_forward_voltage ?? 0.7;
+            const secondaryNominal = currentDesignData.secondary_voltage_rms ?? currentDesignData.input_voltage ?? 12;
+            const primaryNominal = currentDesignData.primary_voltage_rms ?? (secondaryNominal * turnsRatio);
+            const seriesResistor = currentDesignData.series_resistor_value ?? null;
+            const capacitor = currentDesignData.filter_capacitor_farads ?? null;
+
+            const wrapMc = (mean, std_dev, min_value, max_value) => ({ mean, std_dev, min_value, max_value });
+            const wrapWc = (minimum, maximum, absolute_min, absolute_max, nominal = null) => ({ minimum, maximum, absolute_min, absolute_max, nominal });
+
+            const mc = currentMonteCarloData?.metrics || {};
+            const wc = currentWorstCaseData?.analysis_data || {};
+
+            const inputAcMc = mc.input_voltage_ac;
+            const peakMc = mc.peak_voltage;
+            const loadMc = mc.load_current;
+            const zenerMc = mc.zener_current;
+            const rippleMc = mc.ripple_voltage;
+            const secondaryFromWc = wc.peak_voltage
+                ? {
+                    minimum: (wc.peak_voltage.minimum + 2 * diodeDrop) / Math.sqrt(2),
+                    maximum: (wc.peak_voltage.maximum + 2 * diodeDrop) / Math.sqrt(2),
+                    absolute_min: (wc.peak_voltage.absolute_min + 2 * diodeDrop) / Math.sqrt(2),
+                    absolute_max: (wc.peak_voltage.absolute_max + 2 * diodeDrop) / Math.sqrt(2),
+                    nominal: (wc.peak_voltage.nominal + 2 * diodeDrop) / Math.sqrt(2)
+                }
+                : null;
+
+            if (mode === 'mc') {
+                switch (metric) {
+                    case 'V Primary RMS':
+                        return inputAcMc ? wrapMc(
+                            inputAcMc.mean * turnsRatio,
+                            inputAcMc.std_dev * turnsRatio,
+                            inputAcMc.min_value * turnsRatio,
+                            inputAcMc.max_value * turnsRatio
+                        ) : null;
+                    case 'V Primary Peak':
+                        return inputAcMc ? wrapMc(
+                            inputAcMc.mean * turnsRatio * Math.sqrt(2),
+                            inputAcMc.std_dev * turnsRatio * Math.sqrt(2),
+                            inputAcMc.min_value * turnsRatio * Math.sqrt(2),
+                            inputAcMc.max_value * turnsRatio * Math.sqrt(2)
+                        ) : null;
+                    case 'V Secondary RMS':
+                        return inputAcMc || null;
+                    case 'V Secondary Peak':
+                        return inputAcMc ? wrapMc(
+                            inputAcMc.mean * Math.sqrt(2),
+                            inputAcMc.std_dev * Math.sqrt(2),
+                            inputAcMc.min_value * Math.sqrt(2),
+                            inputAcMc.max_value * Math.sqrt(2)
+                        ) : null;
+                    case 'N':
+                        return wrapMc(turnsRatio, 0, turnsRatio, turnsRatio);
+                    case 'tb':
+                        return wrapMc(1000 / (2 * lineFrequency), 0, 1000 / (2 * lineFrequency), 1000 / (2 * lineFrequency));
+                    case 'IS':
+                        return (loadMc && zenerMc) ? wrapMc(
+                            loadMc.mean + zenerMc.mean,
+                            Math.sqrt((loadMc.std_dev || 0) ** 2 + (zenerMc.std_dev || 0) ** 2),
+                            loadMc.min_value + zenerMc.min_value,
+                            loadMc.max_value + zenerMc.max_value
+                        ) : null;
+                    case 'RS':
+                        return seriesResistor !== null ? wrapMc(seriesResistor, 0, seriesResistor, seriesResistor) : null;
+                    case 'C':
+                        return capacitor !== null ? wrapMc(capacitor, 0, capacitor, capacitor) : null;
+                    default:
+                        return null;
+                }
+            }
+
+            if (mode === 'wc') {
+                switch (metric) {
+                    case 'V Primary RMS':
+                        return secondaryFromWc ? wrapWc(
+                            secondaryFromWc.minimum * turnsRatio,
+                            secondaryFromWc.maximum * turnsRatio,
+                            secondaryFromWc.absolute_min * turnsRatio,
+                            secondaryFromWc.absolute_max * turnsRatio,
+                            secondaryFromWc.nominal * turnsRatio
+                        ) : null;
+                    case 'V Primary Peak':
+                        return secondaryFromWc ? wrapWc(
+                            secondaryFromWc.minimum * turnsRatio * Math.sqrt(2),
+                            secondaryFromWc.maximum * turnsRatio * Math.sqrt(2),
+                            secondaryFromWc.absolute_min * turnsRatio * Math.sqrt(2),
+                            secondaryFromWc.absolute_max * turnsRatio * Math.sqrt(2),
+                            secondaryFromWc.nominal * turnsRatio * Math.sqrt(2)
+                        ) : null;
+                    case 'V Secondary RMS':
+                        return secondaryFromWc;
+                    case 'V Secondary Peak':
+                        return secondaryFromWc ? wrapWc(
+                            secondaryFromWc.minimum * Math.sqrt(2),
+                            secondaryFromWc.maximum * Math.sqrt(2),
+                            secondaryFromWc.absolute_min * Math.sqrt(2),
+                            secondaryFromWc.absolute_max * Math.sqrt(2),
+                            secondaryFromWc.nominal * Math.sqrt(2)
+                        ) : null;
+                    case 'N':
+                        return wrapWc(turnsRatio, turnsRatio, turnsRatio, turnsRatio, turnsRatio);
+                    case 'tb':
+                        return wrapWc(1000 / (2 * lineFrequency), 1000 / (2 * lineFrequency), 1000 / (2 * lineFrequency), 1000 / (2 * lineFrequency), 1000 / (2 * lineFrequency));
+                    case 'IS':
+                        return (wc.load_current && wc.zener_current) ? wrapWc(
+                            wc.load_current.minimum + wc.zener_current.minimum,
+                            wc.load_current.maximum + wc.zener_current.maximum,
+                            wc.load_current.absolute_min + wc.zener_current.absolute_min,
+                            wc.load_current.absolute_max + wc.zener_current.absolute_max,
+                            (wc.load_current.nominal || 0) + (wc.zener_current.nominal || 0)
+                        ) : null;
+                    case 'RS':
+                        return seriesResistor !== null ? wrapWc(seriesResistor, seriesResistor, seriesResistor, seriesResistor, seriesResistor) : null;
+                    case 'C':
+                        return capacitor !== null ? wrapWc(capacitor, capacitor, capacitor, capacitor, capacitor) : null;
+                    default:
+                        return null;
+                }
+            }
+
+            return null;
+        }
+
+        function getMetricValue(data, metric, type) {
+            if ([
+                'V Primary RMS', 'V Primary Peak', 'V Secondary RMS', 'V Secondary Peak', 'N',
+                "Vpp'", 'tb', 'IFL', 'IS', 'IZT', 'IL', 'Vout', 'VCF', 'Vripple', 'RS', 'C'
+            ].includes(metric)) {
+                const source = (type === 'opt' && currentDesignData) ? { ...currentDesignData, ...data } : data;
+                const primaryRms = source.primary_voltage_rms ?? source.voltage_value ?? null;
+                const secondaryRms = source.secondary_voltage_rms ?? source.input_voltage ?? null;
+                const turnsRatio = source.transformer_turns_ratio ?? null;
+                const outputVoltage = source.output_voltage ?? source.zener_diode_voltage ?? null;
+                const loadResistance = source.load_resistor_value ?? source.load_resistance ?? null;
+                const loadCurrent = (outputVoltage !== null && loadResistance) ? (outputVoltage / loadResistance) : null;
+                const rectifierFrequency = (source.line_frequency_hz ?? 60) * 2;
+                const capacitor = source.filter_capacitor_farads ?? source.capacitor_farads ?? null;
+                const rippleVpp = (loadCurrent !== null && capacitor) ? (loadCurrent / (rectifierFrequency * capacitor)) : null;
+                const peakRectified = source.peak_input_voltage ?? ((secondaryRms !== null)
+                    ? (secondaryRms * Math.sqrt(2) - 2 * (source.diode_forward_voltage ?? 0.7))
+                    : null);
+                const vcf = (peakRectified !== null && rippleVpp !== null) ? (peakRectified - rippleVpp / 2) : null;
+                const seriesResistor = source.series_resistor_value ?? source.series_resistor_ohms ?? null;
+                const zenerCurrent = source.full_load_current ?? ((vcf !== null && outputVoltage !== null && seriesResistor && loadCurrent !== null)
+                    ? (((vcf - outputVoltage) / seriesResistor) - loadCurrent)
+                    : null);
+                const seriesCurrent = (zenerCurrent !== null && loadCurrent !== null) ? (zenerCurrent + loadCurrent) : null;
+                const fmt = (val, digits = 2) => val === null || val === undefined || Number.isNaN(val) ? 'N/A' : val.toFixed(digits);
+                switch (metric) {
+                    case 'V Primary RMS': return primaryRms !== null ? `${fmt(primaryRms, 0)} v` : 'N/A';
+                    case 'V Primary Peak': return primaryRms !== null ? `${fmt(primaryRms * Math.sqrt(2), 1)} v` : 'N/A';
+                    case 'V Secondary RMS': return secondaryRms !== null ? `${fmt(secondaryRms, 0)} v` : 'N/A';
+                    case 'V Secondary Peak': return secondaryRms !== null ? `${fmt(secondaryRms * Math.sqrt(2), 2)} v` : 'N/A';
+                    case 'N': return turnsRatio !== null ? `${fmt(turnsRatio, 0)}` : 'N/A';
+                    case "Vpp'": return peakRectified !== null ? `${fmt(peakRectified, 2)} v` : 'N/A';
+                    case 'tb': return `${fmt((0.75 / rectifierFrequency) * 1000, 2)} ms`;
+                    case 'IFL': return loadCurrent !== null ? `${fmt(loadCurrent * 1000, 1)} mA` : 'N/A';
+                    case 'IS': return seriesCurrent !== null ? `${fmt(seriesCurrent * 1000, 1)} mA` : 'N/A';
+                    case 'IZT': return zenerCurrent !== null ? `${fmt(zenerCurrent * 1000, 1)} mA` : 'N/A';
+                    case 'IL': return loadCurrent !== null ? `${fmt(loadCurrent * 1000, 1)} mA` : 'N/A';
+                    case 'Vout': return outputVoltage !== null ? `${fmt(outputVoltage, 0)} v` : 'N/A';
+                    case 'VCF': return vcf !== null ? `${fmt(vcf, 2)} v` : 'N/A';
+                    case 'Vripple': return rippleVpp !== null ? `${fmt(rippleVpp, 3)} vpp` : 'N/A';
+                    case 'RS': return seriesResistor !== null ? `${fmt(seriesResistor, 1)} Ω` : 'N/A';
+                    case 'C':
+                        return capacitor !== null
+                            ? (capacitor >= 1e-3 ? `${fmt(capacitor * 1e3, 3)} mF` : `${fmt(capacitor * 1e6, 2)} µF`)
+                            : 'N/A';
+                }
+            }
+            if (metric.includes('Primary RMS Voltage')) {
+                return data.primary_voltage_rms !== undefined ? data.primary_voltage_rms : 'N/A';
+            }
+            if (metric.includes('Secondary RMS Voltage')) {
+                return data.secondary_voltage_rms !== undefined ? data.secondary_voltage_rms : (data.input_voltage !== undefined ? data.input_voltage : 'N/A');
+            }
+            if (metric.includes('Input AC Voltage')) {
+                if (data.input_voltage !== undefined) return data.input_voltage;
+                if (data.input_voltage_ac !== undefined) return data.input_voltage_ac;
+                if (data.nominal !== undefined) return data.nominal;
+                return 'N/A';
+            }
+            if (metric.includes('Peak Rectified Voltage')) {
+                if (data.peak_input_voltage !== undefined) return data.peak_input_voltage;
+                if (data.nominal !== undefined) return data.nominal;
+                return 'N/A';
+            }
+            // For MC/WC/nominal tables, handle input voltage for each case
+            if (metric.includes('Input Voltage')) {
+                // MC/WC: look for 'input_voltage' metric (new backend)
+                if (data.mean !== undefined && type === 'mc' && data.mean !== null) return data.mean;
+                if (data.input_voltage !== undefined) return data.input_voltage;
+                if (data.voltage_value !== undefined) return data.voltage_value;
+                if (data.nominal !== undefined) return data.nominal;
+                // MC/WC: look for 'input_voltage' in metrics (new backend)
+                if (data.metrics && data.metrics.input_voltage && data.metrics.input_voltage.mean !== undefined) return data.metrics.input_voltage.mean;
+                // MC: fallback to vin_values in raw_data
+                if (data.vin_values && Array.isArray(data.vin_values)) return data.vin_values[0];
+                // Nominal table: use voltage_value or input_voltage
+                if (type === 'det' && window.currentDesignData) {
+                    if (window.currentDesignData.voltage_value !== undefined) return window.currentDesignData.voltage_value;
+                    if (window.currentDesignData.input_voltage !== undefined) return window.currentDesignData.input_voltage;
+                }
+                return 'N/A';
+            }
+            if (metric.includes('Output Voltage')) {
+                if (data.output_voltage !== undefined) return data.output_voltage;
+                if (data.nominal !== undefined) return data.nominal;
+                return 'N/A';
+            }
+            if (metric.includes('Series Resistor Power')) {
+                if (data.series_resistor_power !== undefined) return data.series_resistor_power;
+                if (data.nominal !== undefined) return data.nominal;
+                return 'N/A';
+            }
+            if (metric.includes('Series Resistor')) return data.series_resistor_display || data.series_resistor_value || data.nominal || 'N/A';
+            if (metric.includes('Filter Capacitor')) return data.filter_capacitor_display || data.filter_capacitor_farads || 'N/A';
+            if (metric.includes('Load Resistance')) return data.load_resistor_value || data.nominal || 'N/A';
+            if (metric.includes('Load Current')) {
+                if (data.load_current !== undefined) return data.load_current;
+                if (data.full_load_current !== undefined) return data.full_load_current;
+                if (data.nominal !== undefined) return data.nominal;
+                return 'N/A';
+            }
+            if (metric.includes('Zener Current')) {
+                if (data.zener_current !== undefined) return data.zener_current;
+                if (data.full_load_current !== undefined) return data.full_load_current;
+                if (data.nominal !== undefined) return data.nominal;
+                return 'N/A';
+            }
+            if (metric.includes('Zener Power')) {
+                if (data.zener_diode_power !== undefined) return data.zener_diode_power;
+                if (data.nominal !== undefined) return data.nominal;
+                return 'N/A';
+            }
+            if (metric.includes('Line Frequency')) return data.line_frequency_hz !== undefined ? data.line_frequency_hz : 'N/A';
+            if (metric.includes('Diode Forward Drop')) return data.diode_forward_voltage !== undefined ? data.diode_forward_voltage : 'N/A';
+            if (metric.includes('Resistor R1')) return data.resistor_display || data.resistor_ohms || data.nominal || 'N/A';
+            if (metric.includes('Resistor R2')) return data.resistor_display_2 || data.resistor_ohms_2 || data.nominal || 'N/A';
+            if (metric.includes('Resistor')) return data.resistor_display || data.nominal || 'N/A';
+            if (metric.includes('Capacitor')) return data.capacitor_display || data.nominal || 'N/A';
+            if (metric.includes('Gain')) return data.gain ? data.gain.toFixed(4) : (data.nominal !== undefined ? data.nominal : 'N/A');
+            if (metric.includes('Cutoff')) return data.cutoff_frequency ? data.cutoff_frequency.toFixed(2) : (data.nominal !== undefined ? data.nominal : 'N/A');
+            if (metric.includes('Time')) return data.time_constant ? data.time_constant.toFixed(6) : (data.nominal !== undefined ? data.nominal : 'N/A');
+            if (metric.includes('Output')) return data.output_voltage ? data.output_voltage.toFixed(4) : (data.nominal !== undefined ? data.nominal : 'N/A');
+            return 'N/A';
+        }
+
+        function getMetricKey(metric) {
+            if (metric === "Vpp'") return 'peak_voltage';
+            if (metric === 'IFL') return 'load_current';
+            if (metric === 'IZT') return 'zener_current';
+            if (metric === 'IL') return 'load_current';
+            if (metric === 'Vout') return 'output_voltage';
+            if (metric === 'VCF') return 'filtered_dc_voltage';
+            if (metric === 'Vripple') return 'ripple_voltage';
+            if (metric.includes('Input AC Voltage')) return 'input_voltage_ac';
+            if (metric.includes('Peak Rectified Voltage')) return 'peak_voltage';
+            if (metric.includes('Series Resistor Power')) return 'series_resistor_power';
+            if (metric.includes('Load Current')) return 'load_current';
+            if (metric.includes('Zener Current')) return 'zener_current';
+            if (metric.includes('Zener Power')) return 'zener_power';
+            if (metric.includes('Filter Capacitor')) return 'filter_capacitor';
+            if (metric.includes('Input Voltage')) return 'input_voltage';
+            if (metric.includes('Series Resistor')) return 'series_resistor';
+            if (metric.includes('Load Resistance')) return 'load_resistance';
+            if (metric.includes('Resistor R1')) return 'resistor';
+            if (metric.includes('Resistor R2')) return 'resistor_2';
+            if (metric.includes('Resistor')) return 'resistor';
+            if (metric.includes('Capacitor')) return 'capacitor';
+            if (metric.includes('Gain')) return 'gain';
+            if (metric.includes('Cutoff')) return 'cutoff_frequency';
+            if (metric.includes('Time')) return 'time_constant';
+            if (metric.includes('Output')) return 'output_voltage';
+            return metric.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        }
+
+        function showError(message) {
+            const area = document.getElementById('statusArea');
+            area.innerHTML = `<div class="alert alert-error">${message}</div>`;
+            setTimeout(() => { area.innerHTML = ''; }, 5000);
+        }
+
+        function showSuccess(message) {
+            const area = document.getElementById('statusArea');
+            area.innerHTML = `<div class="alert alert-success">${message}</div>`;
+            setTimeout(() => { area.innerHTML = ''; }, 3000);
+        }
+    </script>
+</body>
+</html>

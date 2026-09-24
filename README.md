@@ -32,9 +32,17 @@ binding without an API key is rejected.
 
 ## Platform support
 
-This file is the macOS Apple Silicon build. It is not a Windows `.exe` or an
-Intel macOS binary. Build separately on each target platform using the source
-project's `build_nuitka.py` script.
+The checked-in `CircuitDesignApp` file is the macOS Apple Silicon build. It is
+not a Windows `.exe` or an Intel macOS binary.
+
+To build Windows locally, clone this repository on Windows and run
+`build_windows.bat`. The script installs dependencies and creates
+`dist\CircuitDesignApp.exe`. See [WINDOWS_BUILD.md](WINDOWS_BUILD.md) for
+requirements and troubleshooting. Builds must run on their target operating
+system.
+
+The repository includes the `app/` and `frontend/` source required by the build
+script. Generated virtual environments and build directories are ignored.
 
 ## License
 
